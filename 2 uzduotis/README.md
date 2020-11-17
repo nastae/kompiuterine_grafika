@@ -1,4 +1,4 @@
-# 3 užduotis
+# 2 užduotis
 ### Reikalavimai
 
 
