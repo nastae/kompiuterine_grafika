@@ -86,39 +86,11 @@ $(function () {
 	}
 	
 	function createFirstStair() {
-		// Laipteris yra 20 ilgio ir 10 pločio
-		const length = 20, width = 10;
-		var smoothness = 1;
-		var radius = 60;
-		var depth = 1;
-		const extrudeSettings = {
-			steps: 1,
-			bevelEnabled: true,
-			depth: 1,
-			curveSegments: 8,
-			bevelThickness: 0.5,
-			bevelSize: 0.05,
-			bevelOffset: 0,
-			bevelSegments: 1
-			/*
-			amount: depth - radius * 2,
-			bevelEnabled: true,
-			bevelSegments: smoothness * 2,
-			steps: 1,
-			bevelSize: radius,
-			bevelThickness: radius,
-			bevelSize: 1,
-			bevelOffset: 0,
-			bevelSegments: 1,
-			curveSegments: smoothness
-			*/
-		};
-		const extrudeGeometry = new THREE.ExtrudeGeometry(drawStair(width, length ), extrudeSettings);
-		// Nustatome laiptelio spalvą
-		var stairMaterial = new THREE.MeshLambertMaterial({color: 0xDEB887});
-		var stairMesh = new THREE.Mesh(extrudeGeometry, stairMaterial) ;
+		var stairMesh = createStraiMesh();
 		// Rotuojame laiptelį
-		stairMesh.rotation.x = Math.PI / -2;	
+		stairMesh.rotation.x = Math.PI / -2;
+		stairMesh.position.x += 4.7;
+		stairMesh.position.y += 1;
 		return stairMesh;
 	}
 	
@@ -234,12 +206,14 @@ $(function () {
 			var betweenVector = endVector.clone();
 			betweenVector.sub(startVector);
 
+			var length = startVector.distanceTo(endVector);
+
 			// Sukuriame sujungimą
-			var connectionGeometry = new THREE.BoxGeometry(2, 2, 6);
+			var connectionGeometry = new THREE.BoxGeometry(2, 2, length);
 			var connectionMaterial = new THREE.MeshLambertMaterial({color: 0x5a5a5a});
 			var connectionMesh = new THREE.Mesh(connectionGeometry, connectionMaterial );
 			connectionMesh.position.add(startVector);
-			connectionMesh.position.z -= 2;
+			connectionMesh.position.z -= length/2 - 1;
 			
 			// Pasukame sujungimą 
 			var connectionAxis = new THREE.Group();
@@ -289,6 +263,73 @@ $(function () {
 		floor.rotation.x = -0.5 * Math.PI;
 		floor.position.set(10, 50.5, 20);
 		scene.add(floor);
+	}
+	
+	function createStraiMesh() {
+	    var radius = 5;
+	    //var material = new THREE.MeshNormalMaterial();
+		var material = new THREE.MeshLambertMaterial({color: 0xDEB887});
+
+	    point1 = new THREE.Vector3(0, 0, 0);
+	    point2 = new THREE.Vector3(15, 0, 0);
+	    point3 = new THREE.Vector3(15, 2, 0);
+		point4 = new THREE.Vector3(0, 2, 0);
+
+	    p = point3.clone().sub(point2);
+	    a1 = Math.atan2(p.y, p.x) + Math.PI / 2;
+
+	    p = point2.clone().sub(point1);
+	    a2 = Math.atan2(p.y, p.x) - Math.PI / 2;
+
+	    p = point1.clone().sub(point2);
+	    a3 = Math.atan2(p.y, p.x) + Math.PI / 2;
+
+	    p = point3.clone().sub(point2);
+	    a4 = Math.atan2(p.y, p.x) - Math.PI / 2;
+      
+		p = point4.clone().sub(point3);
+	    a5 = Math.atan2(p.y, p.x) - Math.PI / 2;
+      
+
+	    path = new THREE.Path();
+
+	    path.absarc(point1.x, point1.y, radius, a1, a2, false);
+	    path.absarc(point2.x, point2.y, radius, a3, a4, false);
+	    path.absarc(point3.x, point3.y, radius, a4, a5, false);
+		path.absarc(point4.x, point4.y, radius, a5, a1, false);
+       
+
+	    var points = path.getSpacedPoints( 100 );
+
+	    var shape = new THREE.Shape( points );
+        
+	    var geometry = new THREE.ExtrudeGeometry(shape, {
+	        amount: 1,
+	        bevelEnabled: false
+	    });
+		return new THREE.Mesh(geometry, material);
+	}
+	
+	function createStairWithoutRadius() {
+		// Laipteris yra 20 ilgio ir 10 pločio
+		const length = 20, width = 10;
+		var smoothness = 1;
+		var radius = 60;
+		var depth = 1;
+		const extrudeSettings = {
+			steps: 1,
+			bevelEnabled: true,
+			depth: 1,
+			curveSegments: 8,
+			bevelThickness: 0.5,
+			bevelSize: 0.05,
+			bevelOffset: 0,
+			bevelSegments: 1
+		};
+		const extrudeGeometry = new THREE.ExtrudeGeometry(drawStair(width, length ), extrudeSettings);
+		// Nustatome laiptelio spalvą
+		var stairMaterial = new THREE.MeshLambertMaterial({color: 0xDEB887});
+		return new THREE.Mesh(extrudeGeometry, stairMaterial) ;
 	}
 });
 
