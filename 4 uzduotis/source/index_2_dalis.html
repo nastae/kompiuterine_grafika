@@ -1,0 +1,180 @@
+<html>
+    <head>
+        <title>Kompiuterinė grafika: 4 užduotis 2 dalis</title>
+        <meta charset="utf-8">
+</head>
+ 
+    <body>
+        <div id="container"></div>
+    </body>
+   
+    <script src="libs/three.min.js"></script>
+    <script src="libs/TrackballControls.js"></script>
+	<script src="libs/dat.gui.js"></script>
+    <script src="libs/uclass_TeapotGeometry.js"></script>
+
+    <script type="x-shader/x-vertex" id="vertexShader">
+
+		precision mediump float;
+
+		varying vec3 vPosition; 
+		varying vec3 vStripPosition; 
+		varying vec3 vNormal; 
+		varying vec2 vUv;
+		uniform float dx, dy, dz;
+		
+		void main(void) {
+			vUv = uv;
+			vNormal = normalMatrix * normal;
+			vPosition = position;
+			
+			gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0 );         
+		}
+    </script>
+
+    <script type="x-shader/x-vertex" id="fragmentShader">
+		precision mediump float;	
+
+		varying vec3 vPosition; 
+		varying vec3 vNormal; 
+		varying vec2 vUv;
+		uniform float dx, dy, dz, uScale, uEdge;
+		#extension GL_OES_standard_derivatives : enable
+		
+		void main() {
+			vec3 lightDir = normalize(vec3(dx,dy,dz)); 
+			float intensity = dot(lightDir,normalize(vNormal));
+			vec3 color = vec3(intensity);
+			
+			// Spalvos
+			vec3 purple = vec3(0.98*intensity, 0.015*intensity, 0.98*intensity);
+			vec3 blue = vec3(0.015*intensity, 0.015*intensity, 0.98*intensity);
+			vec3 yellow = vec3(0.98*intensity, 0.98*intensity, 0.015*intensity);
+			vec3 green = vec3(0.015*intensity, 0.98*intensity, 0.015*intensity);
+			
+			if (max(abs(vPosition.x*0.025), abs(vPosition.y*0.225 - 0.4)) < 0.5) {
+				float u = vPosition.x * uScale;
+				float v = vPosition.y * uScale;
+				float f = max(abs(vPosition.x*0.025), abs(vPosition.y*0.225 - 0.4));
+				float grad = length(vec2(dFdx(f),dFdy(f))); 
+				float d = uEdge*grad;
+				float edgeFactor = step(0.5, f);
+				color = mix(yellow, color, edgeFactor);
+
+				u = fract(u)-0.5;
+				v = fract(v)-0.5;
+				f = abs(u) + abs(v) - 0.5;
+				grad = length(vec2(dFdx(f),dFdy(f))); 
+				d = uEdge*grad;
+				edgeFactor = smoothstep(-d, d, f);
+				color = mix(green, color, edgeFactor);
+				
+				f = max(abs(u), abs(v)) - 0.25;
+				grad = length(vec2(dFdx(f),dFdy(f))); 
+				d = uEdge*grad;
+				edgeFactor = smoothstep(-d, d, f);
+				color = mix(blue, color, edgeFactor);
+				
+				u = fract(u)-0.5;
+				v = fract(v)-0.5;
+				f = max(abs(u), abs(v)) - 0.25;
+				grad = length(vec2(dFdx(f),dFdy(f))); 
+				d = uEdge*grad;
+				edgeFactor = smoothstep(-d, d, f);
+				color = mix(purple, color, edgeFactor);
+			}
+			
+			gl_FragColor = vec4(color,1.0);   			
+		}
+	</script>
+ 
+    <script type="text/javascript" id="mainCode">
+	 
+		var control,    
+			container, 
+			renderer, 
+			scene, 
+			camera, 
+			mesh, 
+			start = Date.now(),
+			fov = 30;
+	 
+		window.addEventListener( 'load', function() {
+	 
+		container = document.getElementById( "container" );
+		 
+		scene = new THREE.Scene();
+	 
+		camera = new THREE.PerspectiveCamera( 
+			fov, 
+			window.innerWidth / window.innerHeight, 
+			1, 
+			10000 );
+		camera.position.z = 100;
+		camera.target = new THREE.Vector3( 0, 0, 0 );
+	 
+		scene.add( camera );
+		 
+		material = new THREE.ShaderMaterial( {
+			uniforms: { 
+				uScale: {type: 'f', value: 8.0},
+				uEdge: {type: 'f', value:  0.0} ,
+				dx: {type: 'f', value:  0.0}, 
+				dy: {type: 'f', value:  0.0}, 
+				dz: {type: 'f', value:  1.0} 
+			},
+			vertexShader: document.getElementById( 'vertexShader' ).textContent,
+			fragmentShader: document.getElementById( 'fragmentShader' ).textContent  
+		} );
+		
+		var teapotSize = 15; 
+		var segments = 10;
+		geo = new THREE.TeapotGeometry(teapotSize, segments, true, true, true, true, true);
+		//size, segments, bottom, lid, body, fitLid, blinn
+		mesh = new THREE.Mesh(geo, material); 
+		scene.add( mesh );
+
+
+		// MENU    
+		control = new function() {
+			this.X = 0.5;
+			this.Y = 0.5;
+			this.Z = 1.0;
+			this.Skale = 1.0;
+			this.Briauna = 0.0;
+		}
+		var gui = new dat.GUI();
+		gui.add(control, 'X', -1.0, 1.0, 0.0);    
+		gui.add(control, 'Y', -1.0, 1.0, 0.0);    
+		gui.add(control, 'Z', 1.0, 2.0, 1.0);    
+		gui.add(control, 'Skale', 0.001, 2.0);    
+		gui.add(control, 'Briauna', 0.0, 10.0);       
+
+		renderer = new THREE.WebGLRenderer();
+		renderer.setSize( window.innerWidth, window.innerHeight );
+		 
+		container.appendChild( renderer.domElement );
+		controls = new THREE.TrackballControls( camera, renderer.domElement );     
+		render();
+	 
+	} );
+	
+	function render() {
+
+		// Update uniform
+		material.uniforms.dx.value = control.X; 
+		material.uniforms.dy.value = control.Y; 
+		material.uniforms.dz.value = control.Z; 
+		material.uniforms.uScale.value = control['Skale']; 
+		material.uniforms.uEdge.value = control['Briauna'] 
+
+		// render
+		renderer.render( scene, camera );
+		requestAnimationFrame( render );
+		controls.update(); 
+	}
+
+    </script>
+ 
+</html>
+

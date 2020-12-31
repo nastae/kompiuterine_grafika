@@ -1,0 +1,147 @@
+<html lang="en">
+    <head>
+        <title>Kompiuterinė grafika: 4 užduotis 1 dalis</title>
+        <meta charset="utf-8">
+</head>
+    <body>
+        <div id="container"></div>
+    </body>
+ 
+    <script src="libs/three.min.js"></script>
+    <script src="libs/TrackballControls.js"></script>
+	<script src="libs/dat.gui.js"></script>
+ 
+    <script type="x-shader/x-vertex" id="vertexShader">
+		precision mediump float;
+
+		uniform float uScale;
+		uniform float uEdge;
+		varying vec2 vUv;
+		
+		void main(void) {
+			vUv = uv;
+			gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0 );
+		}
+    </script>
+    <script type="x-shader/x-vertex" id="fragmentShader">
+		precision mediump float;	
+		
+		uniform float uScale;
+		uniform float uEdge;
+		varying vec2 vUv;
+		#extension GL_OES_standard_derivatives : enable
+
+		void main() {
+
+			// Spalvos
+			vec3 purple = vec3(0.98, 0.015, 0.98);
+			vec3 blue = vec3(0.015, 0.015, 0.98);
+			vec3 yellow = vec3(0.98, 0.98, 0.015);
+			vec3 green = vec3(0.015, 0.98, 0.015);
+
+			float u = vUv.x * uScale;
+			float v = vUv.y * uScale;
+			u = fract(u)-0.5;
+			v = fract(v)-0.5;
+			// Apsukto 45 laipsnių kvadrato formulė
+			float f = abs(u) + abs(v) - 0.5;
+			// Nustatome, kad tekstūra nepriklausytų nuo iš kokio atstumo į ją žiūrime
+			float grad = length(vec2(dFdx(f),dFdy(f))); 
+			float d = uEdge*grad;
+			// Nustatome, kad švelniai pereitų spalvos per briauną
+			float edgeFactor = smoothstep(-d, d, f);
+			// Spalviname žalią apsuktą 45 laipsnių kvadratą geltoname fone
+			vec3 finalColor = mix(green, yellow, edgeFactor);
+			
+			// Kvadrato formulė
+			f = max(abs(u), abs(v)) - 0.25;
+			// Nustatome, kad švelniai pereitų spalvos per briauną
+			grad = length(vec2(dFdx(f),dFdy(f))); 
+			d = uEdge*grad;
+			// Briaunos ilgio perėjimas
+			edgeFactor = smoothstep(-d, d, f);
+			// Spalviname mėlyną kvadratą jau turimoje tekstūroje
+			finalColor = mix(blue, finalColor, edgeFactor);
+			
+			u = fract(u)-0.5;
+			v = fract(v)-0.5;
+			// Kvadrato formulė
+			f = max(abs(u), abs(v)) - 0.25;
+			// Nustatome, kad švelniai pereitų spalvos per briauną
+			grad = length(vec2(dFdx(f),dFdy(f))); 
+			d = uEdge*grad;
+			// Briaunos ilgio perėjimas
+			edgeFactor = smoothstep(-d, d, f);
+			// Spalviname violetinius kvadratus jau turimoje tekstūroje
+			finalColor = mix(purple, finalColor, edgeFactor);
+			gl_FragColor = vec4(finalColor, 1.0);
+		}
+	</script>
+    <script type="text/javascript" id="mainCode">
+		 var
+			control,    
+			container, 
+			renderer, 
+			scene, 
+			camera, 
+			mesh, 
+			start = Date.now(),
+			fov = 30;
+		 
+		window.addEventListener( 'load', function() {
+		 
+			container = document.getElementById( "container" );
+			 
+			scene = new THREE.Scene();
+		 
+			camera = new THREE.PerspectiveCamera( 
+				fov, 
+				window.innerWidth / window.innerHeight, 
+				1, 
+				10000 );
+			camera.position.z = 100;
+			camera.target = new THREE.Vector3( 0, 0, 0 );
+		 
+			scene.add( camera );
+			 
+			material = new THREE.ShaderMaterial( {
+				uniforms: { 
+					uScale: {type: 'f', value: 8.0},
+					uEdge: {type: 'f', value:  0.0} 
+				},
+				vertexShader: document.getElementById( 'vertexShader' ).textContent,
+				fragmentShader: document.getElementById( 'fragmentShader' ).textContent  
+			} );
+			 
+			var geo = new THREE.PlaneGeometry(30, 30, 32, 32, 32);    
+			mesh = new THREE.Mesh(geo, material); 
+			scene.add( mesh );
+
+			control = {
+				"Skale": 1.0,
+				"Briauna": 0.0
+			  };
+			var gui = new dat.GUI();
+			gui.add(control, 'Skale', 1.0, 20.0);    
+			gui.add(control, 'Briauna', 0.0, 10.0);    
+
+			renderer = new THREE.WebGLRenderer();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			 
+			container.appendChild( renderer.domElement );
+			controls = new THREE.TrackballControls( camera, renderer.domElement );     
+			render();
+		 
+		} );
+		
+		function render() {
+			// Atnaujina duomenis
+			material.uniforms.uScale.value = control['Skale']; 
+			material.uniforms.uEdge.value = control['Briauna']; 
+			// Renderina
+			renderer.render( scene, camera );
+			requestAnimationFrame( render );
+			controls.update(); 
+		}
+	</script>
+</html>
